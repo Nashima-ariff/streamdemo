@@ -67,7 +67,7 @@ func duplicateServer(c *gin.Context) GetContentByChunkResponse {
 	size := getMediaInfo()
 	return GetContentByChunkResponse{
 		Status:           SUCCESS,
-		ContentId:        139,
+		ContentId:        123,
 		ChunkId:          id,
 		ChunkSize:        info.Size(),
 		TotalContentSize: size,
@@ -92,7 +92,7 @@ func getchunk(partno int64) ([]byte, os.FileInfo) {
 
 func createChunk() {
 	//this function used to divide video as chunks
-	fileToBeChunked := "./139.mp4" // change here!
+	fileToBeChunked := "./123.mp4" // change here!
 	file, err := os.Open(fileToBeChunked)
 	if err != nil {
 		fmt.Println(err)
@@ -137,7 +137,7 @@ func createChunk() {
 }
 
 func getMediaInfo() int64 {
-	f, _ := os.Open("./139.mp4")
+	f, _ := os.Open("./123.mp4")
 	info, _ := f.Stat()
 	//log.Println("info of whole video", info.Size(), info.Name())
 	return info.Size()
