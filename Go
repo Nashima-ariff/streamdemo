@@ -1,0 +1,71 @@
+package main
+
+import (
+	"bufio"
+	"context"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"time"
+)
+
+const (
+	serverURL     = "http://localhost:8080/events" // Update with your server URL
+	numConnections = 1000 // Number of concurrent connections
+)
+
+// handleSSEClient handles incoming SSE events for a single client
+func handleSSEClient(id int, topics []string, ctx context.Context, done chan struct{}) {
+	url := fmt.Sprintf("%s?id=client%d&topics=%s", serverURL, id, topics)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Printf("Client %d failed to connect: %v", id, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Client %d received non-OK response: %d", id, resp.StatusCode)
+		return
+	}
+
+	scanner := bufio.NewScanner(resp.Body)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if scanner.Scan() {
+				line := scanner.Text()
+				if len(line) > 0 && line[0] == 'd' {
+					// Process SSE event data
+					fmt.Printf("Client %d received message: %s\n", id, line[5:])
+				}
+			}
+			if err := scanner.Err(); err != nil {
+				log.Printf("Client %d error scanning response: %v", id, err)
+				return
+			}
+		}
+	}
+}
+
+func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	done := make(chan struct{})
+	defer close(done)
+
+	for i := 1; i <= numConnections; i++ {
+		go handleSSEClient(i, []string{"topic1", "topic2"}, ctx, done)
+		time.Sleep(10 * time.Millisecond) // Slight delay to stagger connection opening
+	}
+
+	// Run for a period of time and then stop
+	time.Sleep(5 * time.Minute)
+	cancel() // Stop all clients
+	time.Sleep(5 * time.Second) // Allow some time for all clients to close
+}
